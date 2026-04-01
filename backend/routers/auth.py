@@ -19,9 +19,11 @@ from pydantic import BaseModel
 try:
     firebase_admin.get_app()
 except ValueError:
-    # Use default credentials or specific config if available
-    # For now, we'll try initializing with default (works on Render if env is set)
-    firebase_admin.initialize_app()
+    try:
+        # Provide fallback if no credentials found
+        firebase_admin.initialize_app()
+    except Exception as e:
+        print(f"Firebase Init Warning: Could not initialize default app. {e}")
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
