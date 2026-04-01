@@ -4,7 +4,7 @@
 
 [[redirects]]
   from = "/api/*"
-  to = "https://project-132g.onrender.com/api/:splat"
+  to = "https://smart-multimodal-learning-api.onrender.com/api/:splat"
   status = 200
   force = true
 
