@@ -8,7 +8,7 @@ load_dotenv()
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routers import auth, videos, quizzes, ocr, math, chat, vdo_ocr
-from database import close_db
+from database import close_db, get_database
 
 app = FastAPI(title="Smart Multimodal Learning Platform API")
 
