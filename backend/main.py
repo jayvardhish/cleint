@@ -44,7 +44,21 @@ async def root():
 
 @app.get("/api/health")
 async def health_check():
-    return {"status": "healthy"}
+    db = await get_database()
+    try:
+        # Ping the database if the object exists
+        if db is not None:
+            await db.command("ping")
+            db_status = "connected"
+        else:
+            db_status = "not_initialized"
+    except Exception as e:
+        db_status = f"error: {str(e)}"
+
+    return {
+        "status": "healthy",
+        "database": db_status
+    }
 
 @app.on_event("shutdown")
 async def shutdown_event():
