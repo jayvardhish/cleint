@@ -1,0 +1,46 @@
+# Smart Learning Platform Setup Guide
+
+Follow these steps to set up the project on any system using Docker.
+
+## Prerequisites
+- **Docker Home/Desktop** must be installed and running.
+- **Git** (optional, but needed to clone).
+
+## 1. Prepare Environment Variables
+You need to create `.env` files in both backend and frontend directories.
+
+### Backend Setup:
+1. Navigate to the `backend/` folder.
+2. Create a file named `.env`.
+3. Copy the content from `.env.example` into `.env`.
+4. Fill in your own API keys (DeepSeek, Groq, OpenAI, Google, etc.).
+   *   For **local database**, set `MONGODB_URI=mongodb://mongodb:27017`.
+   *   For **cloud database (Atlas)**, use your cluster URL.
+
+### Frontend Setup:
+1. Navigate to the `frontend/` folder.
+2. Create a file named `.env`.
+3. Copy the content from `.env.example` into `.env`.
+4. Set `VITE_API_URL=http://localhost:5000` (or your backend URL if deploying).
+5. Set `VITE_GOOGLE_CLIENT_ID` to your Google OAuth client ID.
+
+## 2. Run the Application
+1. Open a terminal (PowerShell or Bash) in the project root directory.
+2. Run the following command:
+   ```bash
+   docker-compse up --build
+   ```
+3. Docker will automatically:
+   - Start a MongoDB container.
+   - Build and start the Backend container (port 5000).
+   - Build and start the Frontend container (port 80).
+
+## 3. Access the Application
+- **Frontend**: http://localhost (or http://localhost:80)
+- **Backend API**: http://localhost:5000/docs
+- **Database (MongoDB)**: Running internally on port 27017.
+
+## Important Notes:
+- The `uploads/` folder in the backend is persisted via Docker volumes.
+- If you change code, you may need to run `docker-compose up --build` again to see changes.
+- Ensure ports 80, 5000, and 27017 are not being used by other applications before starting.
