@@ -7,7 +7,7 @@ const getBaseURL = () => {
     if (isProduction) {
         // Force the Render URL if env variable is localhost or missing
         if (!envURL || envURL.includes('localhost')) {
-            return 'https://project-132g.onrender.com';
+            return 'https://smartlearn-backend-143y.onrender.com';
         }
         return envURL;
     }
