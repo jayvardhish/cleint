@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import api from '../utils/api';
+import { signInWithGoogle as firebaseSignInWithGoogle, auth as firebaseAuth } from '../utils/firebase';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
 
 const AuthContext = createContext();
 
@@ -28,14 +30,12 @@ export const AuthProvider = ({ children }) => {
     useEffect(() => {
         console.log("AuthContext: Checking token...", { hasToken: !!token });
         if (token) {
-            // No need to set headers.common, the api interceptor handles it
             fetchCurrentUser();
         } else {
             console.log("AuthContext: No token, unlocking loading");
             setLoading(false);
         }
 
-        // Safety timeout: 3 seconds is plenty for a local/fast API
         const timer = setTimeout(() => {
             setLoading(prev => {
                 if (prev) {
@@ -44,7 +44,7 @@ export const AuthProvider = ({ children }) => {
                 }
                 return prev;
             });
-        }, 3000);
+        }, 5000); // Increased for production stability
 
         return () => clearTimeout(timer);
     }, [token]);
@@ -52,12 +52,11 @@ export const AuthProvider = ({ children }) => {
     const fetchCurrentUser = async () => {
         try {
             console.log("AuthContext: Fetching from: /api/auth/me");
-            const response = await api.get('/api/auth/me', { timeout: 8000 });
+            const response = await api.get('/api/auth/me', { timeout: 10000 });
             setUser(response.data);
             console.log("AuthContext: User verified");
         } catch (error) {
             console.error("AuthContext: Auth check failed:", error.message);
-            // If it's a 401, just clear the user but stop loading
             logout();
         } finally {
             setLoading(false);
@@ -68,14 +67,36 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('token', newToken);
         setToken(newToken);
         setUser(userData);
-        // No need to set headers.common, the api interceptor handles it
     };
 
-    const logout = () => {
+    const loginWithGoogle = async () => {
+        try {
+            setLoading(true);
+            const result = await firebaseSignInWithGoogle();
+            const idToken = await result.user.getIdToken();
+            
+            // Call backend to verify Firebase token and get session token
+            const response = await api.post('/api/auth/firebase-login', { id_token: idToken });
+            const { access_token, user: userData } = response.data;
+            
+            login(access_token, userData);
+            return { success: true };
+        } catch (error) {
+            console.error("Google Auth Error:", error);
+            setLoading(false);
+            return { success: false, error: error.message };
+        }
+    };
+
+    const logout = async () => {
+        try {
+            await signOut(firebaseAuth);
+        } catch (e) {
+            console.error("Firebase signout error:", e);
+        }
         localStorage.removeItem('token');
         setToken(null);
         setUser(null);
-        // No need to delete headers.common
     };
 
     const value = {
@@ -83,6 +104,7 @@ export const AuthProvider = ({ children }) => {
         token,
         loading,
         login,
+        loginWithGoogle,
         logout,
         isAuthenticated: !!user
     };
@@ -101,3 +123,4 @@ export const AuthProvider = ({ children }) => {
         </AuthContext.Provider>
     );
 };
+

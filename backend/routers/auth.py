@@ -11,7 +11,75 @@ import os
 from database import get_database
 from datetime import datetime
 
+import firebase_admin
+from firebase_admin import auth as firebase_auth, credentials
+from pydantic import BaseModel
+
+# Initialize Firebase Admin
+try:
+    firebase_admin.get_app()
+except ValueError:
+    # Use default credentials or specific config if available
+    # For now, we'll try initializing with default (works on Render if env is set)
+    firebase_admin.initialize_app()
+
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
+
+class FirebaseLoginRequest(BaseModel):
+    id_token: str
+
+@router.post("/firebase-login")
+async def firebase_login(request: FirebaseLoginRequest):
+    try:
+        # Verify the Firebase ID token
+        decoded_token = firebase_auth.verify_id_token(request.id_token)
+        email = decoded_token.get("email")
+        name = decoded_token.get("name")
+        picture = decoded_token.get("picture")
+
+        if not email:
+            raise HTTPException(status_code=400, detail="Email not provided by Firebase")
+
+        # Find or create user
+        db = await get_database()
+        user = await db.users.find_one({"email": email})
+
+        if not user:
+            new_user = {
+                "username": name or email.split("@")[0],
+                "email": email,
+                "password_hash": "", # No password for OAuth
+                "profile_picture": picture,
+                "created_at": datetime.utcnow(),
+                "auth_provider": "google-firebase"
+            }
+            result = await db.users.insert_one(new_user)
+            user_id = str(result.inserted_id)
+            username = new_user["username"]
+            created_at = new_user["created_at"]
+        else:
+            user_id = str(user["_id"])
+            username = user["username"]
+            picture = user.get("profile_picture") or picture
+            created_at = user["created_at"]
+
+        # Generate local access token
+        access_token = create_access_token(data={"sub": email})
+        
+        return {
+            "access_token": access_token,
+            "token_type": "bearer",
+            "user": {
+                "id": user_id,
+                "username": username,
+                "email": email,
+                "profile_picture": picture,
+                "created_at": created_at
+            }
+        }
+    except Exception as e:
+        print(f"Firebase Auth Error: {e}")
+        raise HTTPException(status_code=401, detail=f"Firebase Authentication Failed: {str(e)}")
 # Use both common variations for Render (with and without hyphens)
 frontend_url = os.getenv("CLIENT_URL") or os.getenv("FRONTEND_URL") or "https://smart-learning-frontend.onrender.com"
 # Fallback to Netlify if Render isn't the primary

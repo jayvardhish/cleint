@@ -7,6 +7,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import api, { API_URL } from '../utils/api';
 
+import { useAuth } from '../context/AuthContext';
+
 const schema = z.object({
     username: z.string().min(3, { message: "Username must be at least 3 characters" }),
     email: z.string().email({ message: "Invalid email address" }),
@@ -15,6 +17,7 @@ const schema = z.object({
 
 const Signup = () => {
     const navigate = useNavigate();
+    const { loginWithGoogle } = useAuth();
     const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
         resolver: zodResolver(schema)
     });
@@ -162,12 +165,20 @@ const Signup = () => {
                     </div>
 
                     <div className="mt-8">
-                        <a
-                            href={`${API_URL}/api/auth/google/login`}
+                        <button
+                            type="button"
+                            onClick={async () => {
+                                const result = await loginWithGoogle();
+                                if (result.success) {
+                                    navigate('/dashboard');
+                                } else {
+                                    alert(result.error);
+                                }
+                            }}
                             className="flex items-center justify-center w-full py-4 bg-white border border-gray-100 rounded-2xl hover:bg-gray-50 hover:shadow-xl transition-all font-bold text-gray-700 shadow-md"
                         >
                             <img src="https://www.google.com/favicon.ico" className="w-5 h-5 mr-3" alt="Google" /> Sign up with Google
-                        </a>
+                        </button>
                     </div>
 
                     <p className="mt-10 text-center text-gray-400 font-medium">

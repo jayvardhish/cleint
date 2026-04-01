@@ -15,7 +15,7 @@ const schema = z.object({
 
 const Login = () => {
     const navigate = useNavigate();
-    const { login } = useAuth();
+    const { login, loginWithGoogle } = useAuth();
     const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
         resolver: zodResolver(schema)
     });
@@ -170,12 +170,20 @@ const Login = () => {
                     </div>
 
                     <div className="mt-10">
-                        <a
-                            href={`${API_URL}/api/auth/google/login`}
+                        <button
+                            type="button"
+                            onClick={async () => {
+                                const result = await loginWithGoogle();
+                                if (result.success) {
+                                    navigate('/dashboard');
+                                } else {
+                                    alert(result.error);
+                                }
+                            }}
                             className="flex items-center justify-center w-full py-4 bg-white border border-gray-100 rounded-2xl hover:bg-gray-50 hover:shadow-xl transition-all font-bold text-gray-700 shadow-md"
                         >
                             <img src="https://www.google.com/favicon.ico" className="w-5 h-5 mr-3" alt="Google" /> Continue with Google
-                        </a>
+                        </button>
                     </div>
 
                     <p className="mt-12 text-center text-gray-400 font-medium">
